@@ -27,11 +27,16 @@ module.exports = {
     ],
     "prettier/prettier": "error", // 使用 Prettier 进行代码格式化检查
     // 允许箭头函数声明函数组件
-    "react/function-component-definition": [
-      2,
+    "react/function-component-definition": ["off"],
+    "import/prefer-default-export": "off",
+    "import/extensions": [
+      "error",
+      "always",
       {
-        namedComponents: "arrow-function",
-        unnamedComponents: "arrow-function",
+        ts: "never",
+        tsx: "never",
+        js: "never",
+        jsx: "never",
       },
     ],
     // 其他自定义规则
