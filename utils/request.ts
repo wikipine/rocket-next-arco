@@ -1,102 +1,160 @@
 /**
- * 基于NextJS Fetch 打造的通用请求方法
+ * 基于axios实现的通用请求
  */
-import { hash } from 'ohash'
-import qs from 'qs'
-import { Message as message } from '@arco-design/web-react';
-import store from '@/store/store';
+import axios from 'axios';
+import qs from 'qs';
+import { hostname, LOGIN_TOKEN_KEY } from '@/utils/constance';
+import { Message as arcoToast } from '@arco-design/web-react';
 
-interface RequestParams {
-    url: string;
-    headers?: Record<string, string>;
-    params?: Record<string, any>;
-    data?: Record<string, any>;
+function checkStatus(response) {
+  if (response.status >= 200 && response.status < 300) {
+    return response;
+  }
+  const error = new Error(response.statusText);
+  error.response = response;
+  throw error;
 }
 
-// 基本请求链接
-const baseUrl = process.env.NEXT_PUBLIC_BASE_API_URL;
+function updateToken(res) {
+  const token = res?.data?.access_token;
 
-const request = (type, {method, url, headers, params, data})  => {
-    let options = {
-        method,
-        params: params ? params : {}
-    }
-    if(data) {
-        options['body'] = data;
-    }
-    if(headers) {
-        options['headers'] = headers;
-    }
-    if (method === 'post'
-        && options['headers']
-        && options['headers']['Content-Type'] === 'application/x-www-form-urlencoded'
-        && options['body']
-    ) {
-        options['body'] = qs.stringify(options['body']);
-    }
-    // 设置token
-    const state = store.getState();
-    const token = state.account.token;
-
-    if(options['headers']) {
-        options['headers']['access-token'] = token
-    } else {
-        options['headers'] = {
-            'access-token': token
-        }
-    }
-    // 设置浏览器指纹
-    // if(rktFingerprint) {
-    //     options['headers']['rkt-fingerprint'] = rktFingerprint;
-    // }
-    // 链接处理
-    let reqUrl = baseUrl;
-    if(url) {
-        reqUrl += url;
-    }
-    // 不设置key，始终拿到的都是第一个请求的值，参数一样则不会进行第二次请求
-    // const key = hash(JSON.stringify(options));
-    // if(options['params']){
-    //     options['params']['t'] = new Date().getTime();
-    // } else {
-    //     options['params'] = {
-    //         t: new Date().getTime()
+  if ('bearer' === res?.data?.token_type && token) {
+    localStorage.setItem(LOGIN_TOKEN_KEY, `Bearer ${token}`);
+    // $.ajaxSetup({
+    //     headers: {
+    //         token
     //     }
-    // }
-    return new Promise((resolve, reject) => {
-        fetch(reqUrl, { ...options }).then((res: any) => {
-            // 错误交由指定业务处理
-            if(!res.success) {
-                let errorMsg = res.remark ?? res.errorInfo;
-                if(!errorMsg) {
-                    errorMsg = '未知的系统错误';
-                }
-                message.error(errorMsg);
-                // todo 通用鉴权可在此处理
-                if(res.errorCode === 10011002 && token) {
-                    // 执行退出登录
-                    // authStore.loginOut();
-                }
-            }
-            resolve(res);
-        }).catch((err) => {
-            message.error(err.message);
-            reject(err)
-        })
-    })
+    // })
+  }
+
+  return res;
 }
 
-export default new class Http {
-    get({url, headers, params, data}: RequestParams) {
-        return request('client', {method: 'get', url, headers, params, data})
-    }
-    post({url, headers, params, data}: RequestParams)  {
-        return request('client', {method: 'post', url, headers, params, data})
-    }
-    serverGet({url, headers, params, data}: RequestParams) {
-        return request('server', {method: 'get', url, headers, params, data})
-    }
-    serverPost({url, headers, params, data}: RequestParams) {
-        return request('server', {method: 'post', url, headers, params, data})
-    }
+function parseJSON(response) {
+  return response.data;
 }
+
+/**
+ * Requests a URL, returning a promise
+ *
+ * @param  {string} url       The URL we want to request
+ * @param  {object} payload   params
+ * @param  {boolean} needLoginToken the request we need to login or not
+ *
+ * @return {object}           An object containing either "data" or "err"
+ */
+function request(type) {
+  return (
+    url = '',
+    payload = {},
+    needLoginToken = true,
+    config = {},
+    needStopRepeat = true
+  ) => {
+    if (!url.startsWith('http')) {
+      url = `${hostname}${url}`;
+    }
+    if (typeof config === 'boolean') {
+      needStopRepeat = config;
+      config = {};
+    }
+    // 支持任意返回类型
+    if (payload && payload['__responseType']) {
+      config['responseType'] = payload['__responseType'];
+    }
+
+    if (!url) {
+      console.warn('url不存在');
+      return new Promise((r) => {});
+    }
+
+    let params = {};
+    if ('get' === type) {
+      const getParams = qs.stringify(payload);
+      if (url.indexOf('?') > -1) {
+        url += '&=' + getParams;
+      } else {
+        url += '?' + getParams;
+      }
+      params = config;
+    } else if ('post' === type) {
+      if (payload instanceof FormData) {
+        params = payload;
+        config = Object.assign(
+          {},
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          },
+          config
+        );
+      } else {
+        params = payload;
+        console.log('===', params);
+
+        config = Object.assign(
+          {},
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+          config
+        );
+      }
+    }
+
+    const token = localStorage.getItem(LOGIN_TOKEN_KEY);
+
+    if (token) {
+      config.headers = Object.assign({}, config.headers, {
+        Authorization: token,
+      });
+    }
+
+    return (
+      axios[type](url, params, config)
+        .then(updateToken)
+        .then(checkStatus)
+        .then(parseJSON)
+        // .then(checkFlag.bind(this, url))
+        .then((data) => {
+          return data;
+        })
+        .catch((err) => {
+          const response = err.response;
+          console.log('=====啥意思', err, response);
+          if (
+            response &&
+            [401, 403].includes(+response.status) &&
+            ['Unauthorized', 'Forbidden'].includes(response.statusText)
+          ) {
+            response?.data?.detail?.message &&
+              arcoToast.error(response?.data?.detail?.message);
+            if (window.location.pathname.replace(/\//g, '') !== 'login') {
+              window.location.pathname = '/login';
+            }
+          }
+          throw err;
+        })
+        .finally((res) => {})
+    );
+  };
+}
+/**
+ * 注册全局异步请求api
+ */
+// export default () => {
+//   Object.defineProperty(window, 'request', {
+//     value: {
+//       get: request('get'),
+//       post: request('post'),
+//     },
+//     writable: false,
+//     enumerable: false,
+//     configurable: false,
+//   });
+// };
+
+export default request;

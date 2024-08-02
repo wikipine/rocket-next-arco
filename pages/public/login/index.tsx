@@ -1,30 +1,37 @@
-// import type { Metadata } from "next";
+import React, { useEffect } from 'react';
+import Footer from '@/components/Footer';
+import Logo from '@/assets/logo.svg';
+import LoginForm from './form';
+import LoginBanner from './banner';
+import styles from './style/index.module.less';
 
-import { Form, Input, Button, Checkbox } from "@arco-design/web-react";
+function Login() {
+  useEffect(() => {
+    document.body.setAttribute('arco-theme', 'light');
+  }, []);
 
-const FormItem = Form.Item;
-
-// export const metadata: Metadata = {
-//     title: "登录页面",
-//     description: "系统登录",
-// };
-const LoginPage = () => {
   return (
-    <Form style={{ width: 600 }} autoComplete="off">
-      <FormItem label="Username">
-        <Input placeholder="please enter your username..." />
-      </FormItem>
-      <FormItem label="Post">
-        <Input placeholder="please enter your post..." />
-      </FormItem>
-      <FormItem wrapperCol={{ offset: 5 }}>
-        <Checkbox>I have read the manual</Checkbox>
-      </FormItem>
-      <FormItem wrapperCol={{ offset: 5 }}>
-        <Button type="primary">Submit</Button>
-      </FormItem>
-    </Form>
+    <div className={styles.container}>
+      <div className={styles.logo}>
+        <Logo />
+        <div className={styles['logo-text']}>Arco Design Pro</div>
+      </div>
+      <div className={styles.banner}>
+        <div className={styles['banner-inner']}>
+          <LoginBanner />
+        </div>
+      </div>
+      <div className={styles.content}>
+        <div className={styles['content-inner']}>
+          <LoginForm />
+        </div>
+        <div className={styles.footer}>
+          <Footer />
+        </div>
+      </div>
+    </div>
   );
-};
+}
+Login.displayName = 'LoginPage';
 
-export default LoginPage;
+export default Login;
