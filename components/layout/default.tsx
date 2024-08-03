@@ -7,18 +7,23 @@ import {
   IconMenuFold,
   IconMenuUnfold,
 } from '@arco-design/web-react/icon';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import qs from 'query-string';
 import Navbar from '@/components/NavBar';
 import Footer from '@/components/Footer';
-import useRoute, { IRoute } from '@/routes';
+import type { IRoute } from '@/config/routes';
+import useRoute from '@/hooks/useRoute';
 import useLocale from '@/utils/useLocale';
-import { GlobalState } from '@/store';
+import state, { RootState } from '@/store';
 import getUrlParams from '@/utils/getUrlParams';
 import styles from './style/layout.module.less';
 import NoAccess from '@/pages/public/exception/403';
+import checkLogin from '@/utils/checkLogin';
+import store from '@/store';
+import axios from 'axios';
+import { updateLoading } from '@/store/slice/authSlice';
 
 const MenuItem = Menu.Item;
 const SubMenu = Menu.SubMenu;
@@ -43,13 +48,12 @@ function PageLayout({ children }: { children: ReactNode }) {
   const pathname = router.pathname;
   const currentComponent = qs.parseUrl(pathname).url.slice(1);
   const locale = useLocale();
-  const { userInfo, settings, userLoading } = useSelector(
-    (state: GlobalState) => state
-  );
+  const { auth, setting } = useSelector((state: RootState) => state);
+  const dispatch = useDispatch();
 
   const [collapsed, setCollapsed] = useState<boolean>(false);
 
-  const [routes, defaultRoute] = useRoute(userInfo?.permissions);
+  const [routes, defaultRoute] = useRoute();
 
   const defaultSelectedKeys = [currentComponent || defaultRoute];
   const paths = (currentComponent || defaultRoute).split('/');
@@ -60,11 +64,11 @@ function PageLayout({ children }: { children: ReactNode }) {
   const [openKeys, setOpenKeys] = useState<string[]>(defaultOpenKeys);
 
   const navbarHeight = 60;
-  const menuWidth = collapsed ? 48 : settings?.menuWidth;
+  const menuWidth = collapsed ? 48 : setting?.menuWidth;
 
-  const showNavbar = settings?.navbar && urlParams.navbar !== false;
-  const showMenu = settings?.menu && urlParams.menu !== false;
-  const showFooter = settings?.footer && urlParams.footer !== false;
+  const showNavbar = setting?.navbar && urlParams.navbar !== false;
+  const showMenu = setting?.menu && urlParams.menu !== false;
+  const showFooter = setting?.footer && urlParams.footer !== false;
 
   const routeMap = useRef<Map<string, ReactNode[]>>(new Map());
   const menuMap = useRef<
@@ -163,6 +167,26 @@ function PageLayout({ children }: { children: ReactNode }) {
     updateMenuStatus();
   }, [pathname]);
 
+  function fetchUserInfo() {
+    console.log('fetch userInfo');
+    dispatch(updateLoading(true));
+    axios.get('/api/user/userInfo').then((res) => {
+      store.dispatch({
+        type: 'update-userInfo',
+        payload: { userInfo: res.data, userLoading: false },
+      });
+      dispatch(updateLoading(false));
+    });
+  }
+
+  useEffect(() => {
+    if (checkLogin()) {
+      fetchUserInfo();
+    } else if (window.location.pathname.replace(/\//g, '') !== 'login') {
+      // window.location.pathname = '/public/login';
+    }
+  }, []);
+
   return (
     <Layout className={styles.layout}>
       <div
@@ -172,7 +196,7 @@ function PageLayout({ children }: { children: ReactNode }) {
       >
         <Navbar show={showNavbar} />
       </div>
-      {userLoading ? (
+      {auth.loading ? (
         <Spin className={styles['spin']} />
       ) : (
         <Layout>

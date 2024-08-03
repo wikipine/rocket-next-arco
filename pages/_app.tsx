@@ -3,23 +3,19 @@ import { useRouter } from 'next/router';
 import cookies from 'next-cookies';
 import Head from 'next/head';
 import type { AppProps } from 'next/app';
-import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import '@/assets/style/global.less';
 import { ConfigProvider } from '@arco-design/web-react';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
 import enUS from '@arco-design/web-react/es/locale/en-US';
-import axios from 'axios';
 import NProgress from 'nprogress';
-import rootReducer from '../store';
 import { GlobalContext } from '@/common/context';
-import checkLogin from '@/utils/checkLogin';
 import changeTheme from '@/utils/changeTheme';
 import useStorage from '@/utils/useStorage';
 import LayoutDefault from '@/components/layout/default';
 import '@/api/mock';
-
-const store = createStore(rootReducer);
+import store from '@/store';
+import useNProgress from '@/hooks/useNProgress';
 
 interface RenderConfig {
   arcoLang?: string;
@@ -34,7 +30,8 @@ export default function MyApp({
   const { arcoLang, arcoTheme } = renderConfig;
   const [lang, setLang] = useStorage('arco-lang', arcoLang || 'en-US');
   const [theme, setTheme] = useStorage('arco-theme', arcoTheme || 'light');
-  const router = useRouter();
+  // 加入进度显示
+  useNProgress();
 
   const locale = useMemo(() => {
     switch (lang) {
@@ -46,48 +43,6 @@ export default function MyApp({
         return enUS;
     }
   }, [lang]);
-
-  function fetchUserInfo() {
-    store.dispatch({
-      type: 'update-userInfo',
-      payload: { userLoading: true },
-    });
-    axios.get('/api/user/userInfo').then((res) => {
-      store.dispatch({
-        type: 'update-userInfo',
-        payload: { userInfo: res.data, userLoading: false },
-      });
-    });
-  }
-
-  useEffect(() => {
-    if (checkLogin()) {
-      fetchUserInfo();
-    } else if (window.location.pathname.replace(/\//g, '') !== 'login') {
-      // window.location.pathname = '/public/login';
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleStart = () => {
-      NProgress.set(0.4);
-      NProgress.start();
-    };
-
-    const handleStop = () => {
-      NProgress.done();
-    };
-
-    router.events.on('routeChangeStart', handleStart);
-    router.events.on('routeChangeComplete', handleStop);
-    router.events.on('routeChangeError', handleStop);
-
-    return () => {
-      router.events.off('routeChangeStart', handleStart);
-      router.events.off('routeChangeComplete', handleStop);
-      router.events.off('routeChangeError', handleStop);
-    };
-  }, [router]);
 
   useEffect(() => {
     document.cookie = `arco-lang=${lang}; path=/`;

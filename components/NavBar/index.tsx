@@ -24,21 +24,20 @@ import {
   IconTag,
 } from '@arco-design/web-react/icon';
 import { useSelector, useDispatch } from 'react-redux';
-import { GlobalState } from '@/store';
+import { RootState } from '@/store';
 import { GlobalContext } from '@/common/context';
 import useLocale from '@/utils/useLocale';
 import Logo from '@/assets/logo.svg';
 import MessageBox from '@/components/MessageBox';
 import IconButton from './IconButton';
-import Settings from '../Settings';
 import styles from './style/index.module.less';
 import defaultLocale from '@/config/locale';
 import useStorage from '@/utils/useStorage';
-import { generatePermission } from '@/routes';
+import { generatePermission } from '@/hooks/useRoute';
 
 function Navbar({ show }: { show: boolean }) {
   const t = useLocale();
-  const userInfo = useSelector((state: GlobalState) => state.userInfo);
+  const { userInfo } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
 
   const [_, setUserStatus] = useStorage('userStatus');
@@ -72,15 +71,7 @@ function Navbar({ show }: { show: boolean }) {
   }, [role]);
 
   if (!show) {
-    return (
-      <div className={styles['fixed-settings']}>
-        <Settings
-          trigger={
-            <Button icon={<IconSettings />} type="primary" size="large" />
-          }
-        />
-      </div>
-    );
+    return <div className={styles['fixed-settings']}></div>;
   }
 
   const handleChangeRole = () => {
@@ -190,7 +181,6 @@ function Navbar({ show }: { show: boolean }) {
             />
           </Tooltip>
         </li>
-        <Settings />
         {userInfo && (
           <li>
             <Dropdown droplist={droplist} position="br">
