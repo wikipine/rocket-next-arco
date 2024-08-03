@@ -4,4 +4,5 @@
 export const CACHE_NAME = {
   LANG: 'lang',
   THEME: 'theme',
+  LOGIN_TOKEN: 'loginToken',
 };

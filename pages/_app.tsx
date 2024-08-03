@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo } from 'react';
-import { useRouter } from 'next/router';
 import cookies from 'next-cookies';
 import Head from 'next/head';
 import type { AppProps } from 'next/app';
@@ -8,7 +7,6 @@ import '@/assets/style/global.less';
 import { ConfigProvider } from '@arco-design/web-react';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
 import enUS from '@arco-design/web-react/es/locale/en-US';
-import NProgress from 'nprogress';
 import { GlobalContext } from '@/common/context';
 import changeTheme from '@/utils/changeTheme';
 import useStorage from '@/utils/useStorage';
