@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Footer from '@/components/Footer';
+import Footer from '@/components/layout/footer';
 import Logo from '@/assets/logo.svg';
 import LoginForm from './form';
 import LoginBanner from './banner';

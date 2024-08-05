@@ -1,77 +1,58 @@
-import {
-  Form,
-  Input,
-  Checkbox,
-  Link,
-  Button,
-  Space,
-} from '@arco-design/web-react';
+import { Form, Input, Button, Space } from '@arco-design/web-react';
 import { FormInstance } from '@arco-design/web-react/es/Form';
 import { IconLock, IconUser } from '@arco-design/web-react/icon';
-import React, { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import useStorage from '@/utils/useStorage';
+import React, { useRef, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import useLocale from '@/utils/useLocale';
 import locale from './locale';
 import styles from './style/index.module.less';
+import to from 'await-to-js';
+import {
+  LoginFormType,
+  LoginMethod,
+  SystemScopeAlias,
+} from '@/api/types/account';
+import { loginApi } from '@/api/account';
+import { setUserInfo } from '@/store/slice/authSlice';
 
 export default function LoginForm() {
   const formRef = useRef<FormInstance>();
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginParams, setLoginParams, removeLoginParams] =
-    useStorage('loginParams');
+  const dispatch = useDispatch();
 
   const t = useLocale(locale);
 
-  const [rememberPassword, setRememberPassword] = useState(!!loginParams);
-
-  function afterLoginSuccess(params) {
-    // 记住密码
-    if (rememberPassword) {
-      setLoginParams(JSON.stringify(params));
-    } else {
-      removeLoginParams();
+  const onSubmitClick = async () => {
+    const [_err, formData] = await to(formRef.current.validate());
+    if (_err) {
+      return;
     }
-    // 记录登录状态
-    localStorage.setItem('userStatus', 'login');
-    // 跳转首页
-    window.location.href = '/';
-  }
-
-  function login(params) {
     setErrorMessage('');
     setLoading(true);
-    axios
-      .post('/api/user/login', params)
-      .then((res) => {
-        const { status, msg } = res.data;
-        if (status === 'ok') {
-          afterLoginSuccess(params);
-        } else {
-          setErrorMessage(msg || t['login.form.login.errMsg']);
-        }
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }
-
-  function onSubmitClick() {
-    formRef.current.validate().then((values) => {
-      login(values);
-    });
-  }
-
-  // 读取 localStorage，设置初始值
-  useEffect(() => {
-    const rememberPassword = !!loginParams;
-    setRememberPassword(rememberPassword);
-    if (formRef.current && rememberPassword) {
-      const parseParams = JSON.parse(loginParams);
-      formRef.current.setFieldsValue(parseParams);
+    const params: LoginFormType = {
+      loginMethod: LoginMethod.Account,
+      certificate: formData.userName,
+      safePassword: formData.password,
+      systemScopeAlias: SystemScopeAlias.System,
+    };
+    const [err, res] = await to(loginApi(params));
+    setLoading(false);
+    if (err || !res.success) {
+      return;
     }
-  }, [loginParams]);
+    // 设置 token 和 用户基本信息
+    dispatch(
+      setUserInfo({
+        username: res.data.username,
+        avatar: res.data.avatar,
+        role: 'admin',
+        token: res.data.token,
+      })
+    );
+    // 前往首页
+    // window.location.href = '/';
+  };
 
   return (
     <div className={styles['login-form-wrapper']}>
@@ -107,12 +88,6 @@ export default function LoginForm() {
           />
         </Form.Item>
         <Space size={16} direction="vertical">
-          <div className={styles['login-form-password-actions']}>
-            <Checkbox checked={rememberPassword} onChange={setRememberPassword}>
-              {t['login.form.rememberPassword']}
-            </Checkbox>
-            <Link>{t['login.form.forgetPassword']}</Link>
-          </div>
           <Button type="primary" long onClick={onSubmitClick} loading={loading}>
             {t['login.form.login']}
           </Button>

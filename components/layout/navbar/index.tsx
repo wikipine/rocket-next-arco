@@ -30,7 +30,7 @@ import useLocale from '@/utils/useLocale';
 import Logo from '@/assets/logo.svg';
 import MessageBox from '@/components/MessageBox';
 import IconButton from './IconButton';
-import styles from './style/index.module.less';
+import styles from '@/components/layout/navbar/style/index.module.less';
 import defaultLocale from '@/config/locale';
 import useStorage from '@/utils/useStorage';
 import { generatePermission } from '@/hooks/useRoute';
