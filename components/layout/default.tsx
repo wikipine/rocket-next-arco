@@ -9,7 +9,7 @@ import useLocale from '@/utils/useLocale';
 import { RootState } from '@/store';
 import getUrlParams from '@/utils/getUrlParams';
 import styles from './style/layout.module.less';
-import NoAccess from '@/pages/public/exception/403';
+import NoAccess from '@/components/exception/403';
 import { getLoginToken, getLoginUserInfo, loginOut } from '@/utils/auth';
 import { initRoutePermission } from '@/store/slice/routePermissionSlice';
 import { useRouter } from 'next/router';
