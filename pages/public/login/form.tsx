@@ -5,17 +5,14 @@ import React, { useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import useLocale from '@/utils/useLocale';
 import { setUserInfo, setToken } from '@/store/slice/authSlice';
+import { initRoutePermission } from '@/store/slice/routePermissionSlice';
 import locale from './locale';
 import styles from './style/index.module.less';
 import to from 'await-to-js';
-import {
-  LoginFormType,
-  LoginMethod,
-  SystemScopeAlias,
-} from '@/types/request/account';
+import { LoginFormType } from '@/types/request/account';
 import { loginApi } from '@/api/account';
-
 import { useRouter } from 'next/router';
+import { getInitialPath } from '@/utils/routes';
 
 export default function LoginForm() {
   const formRef = useRef<FormInstance>();
@@ -34,10 +31,8 @@ export default function LoginForm() {
     setErrorMessage('');
     setLoading(true);
     const params: LoginFormType = {
-      loginMethod: LoginMethod.Account,
-      certificate: formData.userName,
-      safePassword: formData.password,
-      systemScopeAlias: SystemScopeAlias.System,
+      username: formData.userName,
+      password: formData.password,
     };
     const [err, res] = await to(loginApi(params));
     setLoading(false);
@@ -49,13 +44,16 @@ export default function LoginForm() {
     // 设置用户基本信息
     dispatch(
       setUserInfo({
-        name: res.data.username,
+        name: res.data.name,
         avatar: res.data.avatar,
-        role: 'admin',
+        role: res.data.role,
       })
     );
-    // 前往首页
-    router.push('/');
+    // 初始化权限设置
+    dispatch(initRoutePermission(res.data.role));
+    // 前往入口菜单
+    const indexPath = getInitialPath();
+    router.push(indexPath);
   };
 
   return (

@@ -12,7 +12,6 @@ const routePermissionSlice = createSlice({
     hasSet: false,
     routeMap: {},
     routeList: [],
-    breadcrumbList: [],
   },
   reducers: {
     // 初始化仅需要执行一下
@@ -64,41 +63,9 @@ const routePermissionSlice = createSlice({
       state.routeMap = Object.fromEntries(permissionMap.entries());
       state.hasSet = true;
     },
-    // 更新提示列表
-    updateBreadcrumbList: (state, action) => {
-      const routeIndex = state.routeMap[action.payload];
-      if (!routeIndex) {
-        state.breadcrumbList = [];
-        return;
-      }
-      const keys = routeIndex.split('_').map((key) => parseInt(key, 10));
-      const traverse = (routes: IRoute[], keys: number[]) => {
-        if (keys.length === 0) {
-          return [];
-        }
-        const currentIndex = keys[0];
-        const currentRoute = routes[currentIndex];
-        if (!currentRoute) {
-          return [];
-        }
-        const result = [{ name: currentRoute.name, key: currentRoute.key }];
-        if (keys.length === 1) {
-          return result;
-        }
-        if (currentRoute.children) {
-          const childResult = traverse(currentRoute.children, keys.slice(1));
-          if (childResult) {
-            return result.concat(childResult);
-          }
-        }
-        return [];
-      };
-      state.breadcrumbList = traverse(state.routeList, keys);
-    },
   },
 });
 
-export const { initRoutePermission, updateBreadcrumbList } =
-  routePermissionSlice.actions;
+export const { initRoutePermission } = routePermissionSlice.actions;
 
 export default routePermissionSlice.reducer;

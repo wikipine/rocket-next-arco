@@ -7,7 +7,7 @@ import { UserInfoResponseData } from '@/types/response/account';
  */
 export const loginApi = (data: LoginFormType) => {
   return request.post({
-    url: '/uic/login/platform',
+    url: '/api/user/login',
     data,
   });
 };

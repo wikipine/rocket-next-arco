@@ -34,27 +34,34 @@ if (!isSSR) {
 
       // 登录
       Mock.mock(new RegExp('/api/user/login'), (params) => {
-        const { userName, password } = JSON.parse(params.body);
-        if (!userName) {
+        const { username, password } = JSON.parse(params.body);
+        if (!username) {
           return {
-            status: 'error',
-            msg: '用户名不能为空',
+            success: false,
+            remark: '用户名不能为空',
           };
         }
         if (!password) {
           return {
-            status: 'error',
-            msg: '密码不能为空',
+            success: false,
+            remark: '密码不能为空',
           };
         }
-        if (userName === 'admin' && password === 'admin') {
+        if (username === 'admin' && password === 'admin') {
           return {
-            status: 'ok',
+            success: true,
+            data: {
+              name: username,
+              avatar:
+                'https://lf1-xgcdn-tos.pstatp.com/obj/vcloud/vadmin/start.8e0e4855ee346a46ccff8ff3e24db27b.png',
+              role: 'admin',
+              token: 'token-' + Mock.Random.datetime('yyyy-MM-dd HH:mm:ss'),
+            },
           };
         }
         return {
-          status: 'error',
-          msg: '账号或者密码错误',
+          success: false,
+          remark: '账号或者密码错误',
         };
       });
     },

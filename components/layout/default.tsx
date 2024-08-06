@@ -11,11 +11,9 @@ import getUrlParams from '@/utils/getUrlParams';
 import styles from './style/layout.module.less';
 import NoAccess from '@/components/exception/403';
 import { getLoginToken, getLoginUserInfo, loginOut } from '@/utils/auth';
-import {
-  initRoutePermission,
-  updateBreadcrumbList,
-} from '@/store/slice/routePermissionSlice';
+import { initRoutePermission } from '@/store/slice/routePermissionSlice';
 import { useRouter } from 'next/router';
+import { getBreadcrumbList } from '@/utils/routes';
 
 function PageLayout({ children }: { children: ReactNode }) {
   const urlParams = getUrlParams();
@@ -37,6 +35,7 @@ function PageLayout({ children }: { children: ReactNode }) {
   );
   const [hasPermission, setHasPermission] = useState(false);
   const [permissionLoading, setPermissionLoading] = useState(true);
+  const [breadcrumbList, setBreadcrumbList] = useState([]);
 
   // 初始化权限处理
   useEffect(() => {
@@ -60,7 +59,7 @@ function PageLayout({ children }: { children: ReactNode }) {
       const routeKey = pathname.slice(1);
       if (routePermission.routeMap.hasOwnProperty(routeKey)) {
         setHasPermission(true);
-        dispatch(updateBreadcrumbList(routeKey));
+        setBreadcrumbList(getBreadcrumbList(routeKey));
       } else {
         setHasPermission(false);
       }
@@ -94,10 +93,10 @@ function PageLayout({ children }: { children: ReactNode }) {
           }}
         >
           <div className={styles['layout-content-wrapper']}>
-            {!!routePermission.breadcrumbList.length && (
+            {!!breadcrumbList.length && (
               <div className={styles['layout-breadcrumb']}>
                 <Breadcrumb>
-                  {routePermission.breadcrumbList.map((node, index) => (
+                  {breadcrumbList.map((node, index) => (
                     <Breadcrumb.Item key={index}>
                       {node.name ? locale[node.name] || node.name : node.name}
                     </Breadcrumb.Item>
