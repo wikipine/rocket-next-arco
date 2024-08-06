@@ -8,9 +8,9 @@ import {
   Link,
 } from '@arco-design/web-react';
 import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 import { IconCaretUp } from '@arco-design/web-react/icon';
 import OverviewAreaLine from '@/components/Chart/overview-area-line';
-import axios from 'axios';
 import locale from './locale';
 import useLocale from '@/utils/useLocale';
 import styles from './style/overview.module.less';
@@ -18,6 +18,8 @@ import IconCalendar from './assets/calendar.svg';
 import IconComments from './assets/comments.svg';
 import IconContent from './assets/content.svg';
 import IconIncrease from './assets/increase.svg';
+import to from 'await-to-js';
+import { getOverviewContentApi } from '@/api/dashboard';
 
 const { Row, Col } = Grid;
 
@@ -61,18 +63,16 @@ function Overview() {
   const [loading, setLoading] = useState(true);
   const t = useLocale(locale);
 
-  const userInfo = useSelector((state: any) => state.userInfo || {});
+  const { userInfo } = useSelector((state: RootState) => state.auth);
 
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true);
-    axios
-      .get('/api/workplace/overview-content')
-      .then((res) => {
-        setData(res.data);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    const [err, res] = await to(getOverviewContentApi());
+    setLoading(false);
+    if (err || !res.success) {
+      return;
+    }
+    setData(res.data);
   };
 
   useEffect(() => {

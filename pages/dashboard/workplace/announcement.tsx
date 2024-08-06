@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Link, Card, Skeleton, Tag, Typography } from '@arco-design/web-react';
 import useLocale from '@/utils/useLocale';
 import locale from './locale';
 import styles from './style/announcement.module.less';
+import to from 'await-to-js';
+import { getAnnouncementContentApi } from '@/api/dashboard';
 
 function Announcement() {
   const [data, setData] = useState([]);
@@ -11,16 +12,11 @@ function Announcement() {
 
   const t = useLocale(locale);
 
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true);
-    axios
-      .get('/api/workplace/announcement')
-      .then((res) => {
-        setData(res.data);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    const [err, res] = await to(getAnnouncementContentApi());
+    setLoading(false);
+    setData(res.data);
   };
 
   useEffect(() => {

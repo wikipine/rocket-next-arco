@@ -8,7 +8,6 @@ import Announcement from './announcement';
 import Carousel from './carousel';
 import Docs from './docs';
 import styles from './style/index.module.less';
-import './mock';
 
 const { Row, Col } = Grid;
 
