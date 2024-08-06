@@ -13,7 +13,7 @@ import NoAccess from '@/components/exception/403';
 import { getLoginToken, getLoginUserInfo, loginOut } from '@/utils/auth';
 import { initRoutePermission } from '@/store/slice/routePermissionSlice';
 import { useRouter } from 'next/router';
-import { getBreadcrumbList } from '@/utils/routes';
+import { getBreadcrumbList, getInitialPath } from '@/utils/routes';
 
 function PageLayout({ children }: { children: ReactNode }) {
   const urlParams = getUrlParams();
@@ -57,6 +57,12 @@ function PageLayout({ children }: { children: ReactNode }) {
     if (routePermission.hasSet) {
       // 权限校验处理
       const routeKey = pathname.slice(1);
+      if (!routeKey) {
+        // 前往入口菜单
+        const indexPath = getInitialPath();
+        router.push(indexPath);
+        return;
+      }
       if (routePermission.routeMap.hasOwnProperty(routeKey)) {
         setHasPermission(true);
         setBreadcrumbList(getBreadcrumbList(routeKey));
