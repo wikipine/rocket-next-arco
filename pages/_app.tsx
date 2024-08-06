@@ -58,6 +58,7 @@ export default function MyApp({
   return (
     <>
       <Head>
+        <title>Arco Design Next</title>
         <link
           rel="shortcut icon"
           type="image/x-icon"

@@ -1,20 +1,28 @@
-import React, { useState, ReactNode, useRef, useEffect } from 'react';
+import React, { useState, ReactNode, useEffect } from 'react';
 import { Layout, Breadcrumb, Spin } from '@arco-design/web-react';
 import cs from 'classnames';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import LayoutNavbar from '@/components/layout/navbar';
 import LayoutFooter from '@/components/layout/footer/index';
 import LayoutMenu from '@/components/layout/menu';
 import useLocale from '@/utils/useLocale';
-import store, { RootState } from '@/store';
+import { RootState } from '@/store';
 import getUrlParams from '@/utils/getUrlParams';
 import styles from './style/layout.module.less';
 import NoAccess from '@/pages/public/exception/403';
+import { getLoginToken, getLoginUserInfo, loginOut } from '@/utils/auth';
+import { initRoutePermission } from '@/store/slice/routePermissionSlice';
+import { useRouter } from 'next/router';
 
 function PageLayout({ children }: { children: ReactNode }) {
   const urlParams = getUrlParams();
   const locale = useLocale();
-  const { auth, setting } = useSelector((state: RootState) => state);
+  const router = useRouter();
+  const pathname = router.pathname;
+  const { auth, setting, routePermission } = useSelector(
+    (state: RootState) => state
+  );
+  const dispatch = useDispatch();
 
   const showMenu = setting?.menu && urlParams.menu !== false;
   const showNavbar = setting?.navbar && urlParams.navbar !== false;
@@ -25,7 +33,33 @@ function PageLayout({ children }: { children: ReactNode }) {
   const [paddingLeft, setPaddingLeft] = useState(
     showMenu ? setting?.menuWidth : 0
   );
-  const [showChild, setShowChild] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
+  const [permissionLoading, setPermissionLoading] = useState(true);
+
+  // 初始化权限处理
+  useEffect(() => {
+    (async () => {
+      // 尝试从缓存中获取
+      const token = getLoginToken();
+      if (!token) {
+        loginOut();
+        return;
+      }
+      // 获取用户的信息
+      const userInfo = await getLoginUserInfo();
+      // 加载权限
+      dispatch(initRoutePermission(userInfo.role));
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (routePermission.hasSet) {
+      setHasPermission(
+        routePermission.routeMap.hasOwnProperty(pathname.slice(1))
+      );
+      setPermissionLoading(false);
+    }
+  }, [pathname, routePermission.hasSet]);
 
   return (
     <Layout className={styles.layout}>
@@ -37,13 +71,12 @@ function PageLayout({ children }: { children: ReactNode }) {
         <LayoutNavbar show={showNavbar} />
       </div>
       <Layout>
-        {showMenu ? (
+        {showMenu && auth.userInfo.role ? (
           <LayoutMenu
             paddingTop={paddingTop}
             onMenuWidth={(width) => {
               setPaddingLeft(width);
             }}
-            onShowChild={setShowChild}
           ></LayoutMenu>
         ) : null}
         <Layout
@@ -66,7 +99,13 @@ function PageLayout({ children }: { children: ReactNode }) {
               </div>
             )}
             <Layout.Content>
-              {showChild ? children : <NoAccess />}
+              {permissionLoading ? (
+                <Spin className={styles['spin']} />
+              ) : hasPermission ? (
+                children
+              ) : (
+                <NoAccess />
+              )}
             </Layout.Content>
           </div>
           {showFooter && <LayoutFooter />}

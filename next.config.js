@@ -37,15 +37,6 @@ module.exports = withLess(
 
       return config;
     },
-    async redirects() {
-      return [
-        {
-          source: '/',
-          destination: '/dashboard/workplace',
-          permanent: true,
-        },
-      ];
-    },
     pageExtensions: ['tsx'],
   })
 );

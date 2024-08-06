@@ -4,6 +4,7 @@ import { IconLock, IconUser } from '@arco-design/web-react/icon';
 import React, { useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import useLocale from '@/utils/useLocale';
+import { setUserInfo, setToken } from '@/store/slice/authSlice';
 import locale from './locale';
 import styles from './style/index.module.less';
 import to from 'await-to-js';
@@ -11,15 +12,17 @@ import {
   LoginFormType,
   LoginMethod,
   SystemScopeAlias,
-} from '@/api/types/account';
+} from '@/types/request/account';
 import { loginApi } from '@/api/account';
-import { setUserInfo } from '@/store/slice/authSlice';
+
+import { useRouter } from 'next/router';
 
 export default function LoginForm() {
   const formRef = useRef<FormInstance>();
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
+  const router = useRouter();
 
   const t = useLocale(locale);
 
@@ -42,16 +45,17 @@ export default function LoginForm() {
       return;
     }
     // 设置 token 和 用户基本信息
+    dispatch(setToken(`Bearer ${res.data.token}`));
+    // 设置用户基本信息
     dispatch(
       setUserInfo({
-        username: res.data.username,
+        name: res.data.username,
         avatar: res.data.avatar,
         role: 'admin',
-        token: res.data.token,
       })
     );
     // 前往首页
-    // window.location.href = '/';
+    router.push('/');
   };
 
   return (

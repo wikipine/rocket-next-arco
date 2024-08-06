@@ -1,10 +1,4 @@
-import React, {
-  ReactNode,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Layout, Menu } from '@arco-design/web-react';
 import styles from '@/components/layout/style/layout.module.less';
 import {
@@ -17,7 +11,6 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import qs from 'query-string';
 import { useRouter } from 'next/router';
-import useRoute from '@/hooks/useRoute';
 import type { IRoute } from '@/config/routes';
 import Link from 'next/link';
 import useLocale from '@/utils/useLocale';
@@ -36,60 +29,41 @@ function getIconFromKey(key) {
   }
 }
 
-function SliderMenu({ paddingTop, onMenuWidth, onShowChild }) {
-  const { auth, setting } = useSelector((state: RootState) => state);
+function SliderMenu({ paddingTop, onMenuWidth }) {
+  const { setting, routePermission } = useSelector((state: RootState) => state);
   const locale = useLocale();
   // 样式相关
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const menuWidth = collapsed ? 48 : setting?.menuWidth;
-
   // 菜单内容 & 路由
   const router = useRouter();
   const pathname = router.pathname;
-  const [routes, defaultRoute] = useRoute();
   const currentComponent = qs.parseUrl(pathname).url.slice(1);
-  const defaultSelectedKeys = [currentComponent || defaultRoute];
-  const paths = (currentComponent || defaultRoute).split('/');
+  const defaultSelectedKeys = [currentComponent];
+  const paths = currentComponent.split('/');
   const defaultOpenKeys = paths.slice(0, paths.length - 1);
   const [selectedKeys, setSelectedKeys] =
     useState<string[]>(defaultSelectedKeys);
   const [openKeys, setOpenKeys] = useState<string[]>(defaultOpenKeys);
-
-  const routeMap = useRef<Map<string, ReactNode[]>>(new Map());
   const menuMap = useRef<
     Map<string, { menuItem?: boolean; subMenu?: boolean }>
   >(new Map());
 
   // 渲染菜单路由
-  function renderRoutes(locale) {
-    routeMap.current.clear();
-    return function travel(_routes: IRoute[], level, parentNode = []) {
+  const renderedRoutes = useMemo(() => {
+    const travel = (_routes: IRoute[], level, parentNode = []) => {
       return _routes.map((route) => {
-        const { breadcrumb = true, ignore } = route;
+        const { ignore } = route;
         const iconDom = getIconFromKey(route.key);
         const titleDom = (
           <>
             {iconDom} {locale[route.name] || route.name}
           </>
         );
-
-        routeMap.current.set(
-          `/${route.key}`,
-          breadcrumb ? [...parentNode, route.name] : []
-        );
-
         const visibleChildren = (route.children || []).filter((child) => {
-          const { ignore, breadcrumb = true } = child;
-          if (ignore || route.ignore) {
-            routeMap.current.set(
-              `/${child.key}`,
-              breadcrumb ? [...parentNode, route.name, child.name] : []
-            );
-          }
-
+          const { ignore } = child;
           return !ignore;
         });
-
         if (ignore) {
           return '';
         }
@@ -111,13 +85,15 @@ function SliderMenu({ paddingTop, onMenuWidth, onShowChild }) {
         );
       });
     };
-  }
+    menuMap.current.clear();
+    return travel(routePermission.routeList, 1);
+  }, [routePermission.routeList, locale]);
 
   // 菜单点击
   function onClickMenuItem(key) {
     setSelectedKeys([key]);
   }
-
+  // 更新菜单状态
   function updateMenuStatus() {
     const pathKeys = pathname.split('/');
     const newSelectedKeys: string[] = [];
@@ -139,11 +115,10 @@ function SliderMenu({ paddingTop, onMenuWidth, onShowChild }) {
   }
 
   useEffect(() => {
-    const routeConfig = routeMap.current.get(pathname);
-    // setBreadCrumb(routeConfig || []);
-    updateMenuStatus();
-    onShowChild(routeMap.current.has(pathname));
-  }, [pathname]);
+    if (menuMap.current.size > 0) {
+      updateMenuStatus();
+    }
+  }, [pathname, renderedRoutes]);
 
   useEffect(() => {
     onMenuWidth(menuWidth);
@@ -172,7 +147,7 @@ function SliderMenu({ paddingTop, onMenuWidth, onShowChild }) {
             setOpenKeys(openKeys);
           }}
         >
-          {renderRoutes(locale)(routes, 1)}
+          {renderedRoutes}
         </Menu>
       </div>
       <div
