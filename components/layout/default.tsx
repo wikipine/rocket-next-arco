@@ -11,7 +11,10 @@ import getUrlParams from '@/utils/getUrlParams';
 import styles from './style/layout.module.less';
 import NoAccess from '@/components/exception/403';
 import { getLoginToken, getLoginUserInfo, loginOut } from '@/utils/auth';
-import { initRoutePermission } from '@/store/slice/routePermissionSlice';
+import {
+  initRoutePermission,
+  updateBreadcrumbList,
+} from '@/store/slice/routePermissionSlice';
 import { useRouter } from 'next/router';
 
 function PageLayout({ children }: { children: ReactNode }) {
@@ -28,7 +31,6 @@ function PageLayout({ children }: { children: ReactNode }) {
   const showNavbar = setting?.navbar && urlParams.navbar !== false;
   const showFooter = setting?.footer && urlParams.footer !== false;
 
-  const [breadcrumb, setBreadCrumb] = useState([]);
   const paddingTop = showNavbar ? setting.navbarHeight : 0;
   const [paddingLeft, setPaddingLeft] = useState(
     showMenu ? setting?.menuWidth : 0
@@ -54,9 +56,14 @@ function PageLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (routePermission.hasSet) {
-      setHasPermission(
-        routePermission.routeMap.hasOwnProperty(pathname.slice(1))
-      );
+      // 权限校验处理
+      const routeKey = pathname.slice(1);
+      if (routePermission.routeMap.hasOwnProperty(routeKey)) {
+        setHasPermission(true);
+        dispatch(updateBreadcrumbList(routeKey));
+      } else {
+        setHasPermission(false);
+      }
       setPermissionLoading(false);
     }
   }, [pathname, routePermission.hasSet]);
@@ -87,12 +94,12 @@ function PageLayout({ children }: { children: ReactNode }) {
           }}
         >
           <div className={styles['layout-content-wrapper']}>
-            {!!breadcrumb.length && (
+            {!!routePermission.breadcrumbList.length && (
               <div className={styles['layout-breadcrumb']}>
                 <Breadcrumb>
-                  {breadcrumb.map((node, index) => (
+                  {routePermission.breadcrumbList.map((node, index) => (
                     <Breadcrumb.Item key={index}>
-                      {typeof node === 'string' ? locale[node] || node : node}
+                      {node.name ? locale[node.name] || node.name : node.name}
                     </Breadcrumb.Item>
                   ))}
                 </Breadcrumb>
