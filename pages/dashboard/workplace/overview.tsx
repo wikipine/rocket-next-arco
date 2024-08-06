@@ -10,7 +10,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { IconCaretUp } from '@arco-design/web-react/icon';
-import OverviewAreaLine from '@/components/Chart/overview-area-line';
+import OverviewAreaLine from '@/components/dashboard/chart/overview-area-line';
 import locale from './locale';
 import useLocale from '@/utils/useLocale';
 import styles from './style/overview.module.less';
